@@ -1,0 +1,474 @@
+---
+title: "Package prep"
+author: "Timothee Bonnet"
+date: "22 June 2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Why create your own R-packages?
+
+* Increases reproducibility
+* Forces you to clean, check and document your code; which removes many mistakes and problems.
+* Simple to do but looks so cool.
+* Opens the door to putting packages along publications, Github, CRAN and be recognized and cited for your programming work.
+
+## Packages you will need to create packages easily
+
+Install if you do not have them already.
+
+```{r}
+library(devtools)
+library(roxygen2)
+```
+
+> Note: there are several pipelines to create packages, some using directly RStudio tools. I chose to demonstrate using a pipeline that relies mostly on code and little on clicking buttons, because the former is more reproducible.
+
+## Getting started
+
+Start a R session from a parent directory in which you want to create your package. The package will be initialized inside a new directory. This new directory will also be a new RStudio project.
+
+We will create a package that contains a few functions to handle temperature data. Our package will simply be called "temperature".
+
+Let's initialize the package:
+```{r, eval=FALSE}
+create("temperature")
+```
+
+Check the content of the new directory "temperature":
+
+* **A folder "R", currently empty. We will store our R-functions in there.**
+* A file DESCRIPTION. Meta-data about your package.
+* A file NAMESPACE. Handle relationships with other packages. Do not modify by hand. Not that important if you’re only developing packages for yourself; very important if you plan to share.
+* An RStudio project file "temperature.Rproj". Don't worry about it.
+
+Let's add some R-functions to the R-folder. Create a R-file called "functions.R" and containing the following two functions that form the base of our package:
+
+```{r, eval=FALSE}
+fahr_to_kelvin <- function(temp) {
+  stopifnot(is.numeric(temp))
+  kelvin <- ((temp - 32) * (5 / 9)) + 273.15
+  return(kelvin)
+}
+
+kelvin_to_celsius <- function(temp) {
+  celsius <- temp - 273.15
+  return(celsius)
+}
+
+celsius_to_kelvin <- function(temp) {
+  kelvin <- temp + 273.15
+  return(kelvin)
+}
+```
+
+You can create this file by hand or use some code:
+```{r, eval=FALSE}
+sink(file = "R/Functions.R")
+cat("fahr_to_kelvin <- function(temp) {
+  stopifnot(is.numeric(temp))
+  kelvin <- ((temp - 32) * (5 / 9)) + 273.15
+  return(kelvin)
+}
+
+kelvin_to_celsius <- function(temp) {
+  celsius <- temp - 273.15
+  return(celsius)
+}
+
+celsius_to_kelvin <- function(temp) {
+  kelvin <- temp + 273.15
+  return(kelvin)
+}
+")
+sink()
+
+```
+
+Now we can load the functions and get ready to install your package:
+
+```{r}
+load_all(".")
+```
+
+```{r, eval=FALSE}
+document(".")
+```
+For now `document()` only created the empty directory `man/` and nothing else. That is because there was nothing to document yet.
+
+Now we can install the package from the parent directory:
+```{r, eval=FALSE}
+install("../temperature")
+```
+
+Your package already appears in R-Studio Package tab and can be used. However, there is not much information about the package and its functions.
+
+
+Our functions are not accessible in R:
+```{r, eval=FALSE}
+fahr_to_kelvin(10)
+```
+
+And there is no information about them:
+```{r, eval=FALSE}
+?fahr_to_kelvin
+```
+
+Let's add more information to our package using Roxygen syntax. First for the `fahr_to_kelvin` function:
+
+```{r, eval=FALSE}
+#' Fahrenheit to Kelvin conversion
+#' 
+#' This function takes a temperature expressed in Fahrenheit and convert it to Kelvin.
+#' @param temp A temperature expressed in Fahrenheit
+#'
+#' @export
+fahr_to_kelvin <- function(temp) {
+  stopifnot(is.numeric(temp))
+  kelvin <- ((temp - 32) * (5 / 9)) + 273.15
+  return(kelvin)
+}
+
+
+```
+
+The `@export` line is critical. This tells Roxygen2 to add this function to the NAMESPACE file, so that it will be accessible to users. For your first R package, you’ll probably want to include `@export` for each of your functions (in large packages it is sometimes a good idea to hide some functions that are used only internally by other functions).
+
+Now let's repeat the process:
+```{r, eval=FALSE}
+load_all(".")
+document(".")
+```
+Notice that the NAMESPACE file has changed.
+
+This time a file has been created in `/man`
+```{r, eval=FALSE}
+install("../temperature")
+```
+
+And we can reach our function help page and run the function:
+```{r, eval=FALSE}
+?fahr_to_kelvin
+fahr_to_kelvin(10)
+```
+
+You can see that it is still missing some usual components that are for instance on the `mean()` help page: Value, References, See Also, Examples...
+
+```{r, eval=FALSE}
+#' Fahrenheit to Kelvin conversion
+#' 
+#' This function takes a temperature expressed in Fahrenheit and convert it to Kelvin.
+#' @param temp A temperature expressed in Fahrenheit
+#' 
+#' @return A temperature in Kelvin
+#' 
+#' @examples
+#' fahr_to_kelvin(32)
+#' 
+#' @export
+fahr_to_kelvin <- function(temp) {
+  stopifnot(is.numeric(temp))
+  kelvin <- ((temp - 32) * (5 / 9)) + 273.15
+  return(kelvin)
+}
+
+```
+
+```{r, eval=FALSE}
+load_all(".", reset = TRUE)
+document(".")
+install("../temperature", reload = TRUE)
+```
+
+```{r, eval=FALSE}
+library(temperature)
+?fahr_to_kelvin
+fahr_to_kelvin(temp = )
+```
+
+By the way, sometimes you need to restart your R-session between installations for RStudio to be able to find help pages.
+
+> Now create documentation for `kelvin_to_celsius()`, re-install the package and check you can access the new help page.
+
+```{r, eval=FALSE}
+#' Kelvin to Celsius conversion
+#'
+#' This function takes a temperature expressed in Kelvin and convert it to Celsius.
+#'
+#' @param temp A temperature expressed in Kelvin
+#'
+#' @return A temperature in Celsius.
+#'
+#' @examples
+#' kelvin_to_celsius(300)
+#'
+#' @export
+kelvin_to_celsius <- function(temp) {
+  celsius <- temp - 273.15
+  return(celsius)
+}
+```
+
+
+### Initial fill of the DESCRIPTION
+
+```{r, eval=FALSE}
+Package: temperature
+Title: Utilities to handle temperature data
+Version: 0.0.1
+Authors@R: 
+    person(given = "Timothée",
+           family = "Bonnet",
+           role = c("aut", "cre"),
+           email = "timotheebonnetc@gmail.com",
+           comment = c(ORCID = "0000-0001-7186-5288"))
+Description: What the package does (one paragraph).
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.0
+```
+
+
+## More complete build
+
+```{r, eval=FALSE}
+#roxygenise(".", clean = TRUE)
+load_all(".")
+document(".")
+build(pkg = ".", manual = TRUE)
+check(".", manual = TRUE )
+install("../temperature", reload = TRUE)
+
+```
+
+Check is very useful. Always try to get 0 errors, 0 warnings, 0 notes.
+
+```{r}
+
+```
+
+
+More complete documentation:
+```{r, eval=FALSE}
+build_manual()
+build_readme()
+build_site()
+```
+
+At a later stage consider creating vignettes (i.e. tutorials, examples...)
+```{r, eval=FALSE}
+build_vignettes()
+```
+
+
+
+## Add data
+
+Temperature data from Tuggeranong 1997-2019 http://www.bom.gov.au/climate/data/
+
+```{r, eval=FALSE}
+download.file("https://timotheenivalis.github.io/data/tuggeranong.csv", 
+              destfile = "tuggeranong.csv")
+tuggeranong <- read.csv("tuggeranong.csv")
+```
+
+Initialize the dataset
+```{r, eval=FALSE}
+use_data(tuggeranong, overwrite = TRUE)
+```
+We need to document the dataset. 
+The documentation goes into the `/R` folder in a file called `data.R`.
+
+```{r, eval=FALSE}
+sink("R/data.R")
+cat("
+#' Mean maximum temperature (monthly average) at Tuggeranong
+#'
+#' A dataset containing the average mean maximum temperature per month from 1997 to 2019.
+#'
+#' @format A data frame with 23 rows and 13 variables:
+#' \\describe{
+#'   \\item{Year}{Year}
+#'   \\item{Jan}{January mean maximum temperature}
+#'   \\item{Feb}{February mean maximum temperature}
+#'   \\item{Mar}{March mean maximum temperature}
+#'   \\item{Apr}{April mean maximum temperature}
+#'   \\item{May}{May mean maximum temperature}
+#'   \\item{Jun}{June mean maximum temperature}
+#'   \\item{Jul}{July mean maximum temperature}
+#'   \\item{Aug}{August mean maximum temperature}
+#'   \\item{Sep}{September mean maximum temperature}
+#'   \\item{Oct}{October mean maximum temperature}
+#'   \\item{Nov}{November mean maximum temperature}
+#'   \\item{Dec}{December mean maximum temperature}
+#'   ...
+#' }
+#' @source \\url{http://www.bom.gov.au/climate/data/}
+\"tuggeranong\"
+")
+sink()
+
+```
+
+Don't use `@export` for a dataset. The export is automatic.
+
+```{r, eval=FALSE}
+#roxygenise(".", clean = TRUE)
+load_all(".")
+document(".")
+build(pkg = ".", manual = TRUE)
+check(".", manual = TRUE )
+install("../temperature", reload = TRUE)
+
+```
+
+```{r}
+library(temperature)
+data("tuggeranong")
+tuggeranong
+image(as.matrix(tuggeranong[,-1]))
+```
+
+At least two reasons to include data in your package:
+
+1. Give realistic input to examples in your function documentation 
+2. Share data along your analyses so that analyses can be reproduced and improved
+
+## Connect to other packages
+
+So far our package only uses R-base code. However we could write fancier functions if we used code already available in other packages.
+
+Let's try to include this function in the package:
+```{r}
+Wide_To_Long_Temperature <- function(dat, id.vars="Year", 
+                                variable.name = "Month",
+                                value.name = "Temperature"){
+  require(reshape2)
+  stopifnot(expr={is.data.frame(dat)
+    id.vars %in% colnames(dat)
+    })
+  melttemp <- melt(dat, id.vars = id.vars,
+                 variable.name = variable.name, 
+                 value.name = value.name)
+  return(melttemp)
+}
+
+Wide_To_Long_Temperature(tuggeranong)
+
+```
+
+
+```{r, eval=FALSE}
+#' Wide to long conversion for standard monthly temperature
+#'
+#' This function takes a standard monthly temperature dataframe in wide format to long format.
+#'
+#' @param dat A temperature dataframe
+#' @param id.vars Character string. vector of id variables. Can be integer (variable position) or string (variable name). If blank, will use all non-measured variables.
+#' @param variable.name Character string. Nname of variable used to store measured variable names
+#' @param value.name Character string. Name of variable used to store values
+#'
+#' @return A dataframe
+#'
+#' @examples
+#' data("tuggeranong")
+#' Wide_To_Long_Temperature(tuggeranong)
+#'
+#' @export
+Wide_To_Long_Temperature <- function(dat, id.vars="Year",
+                                     variable.name = "Month",
+                                     value.name = "Temperature"){
+  require(reshape2)
+  stopifnot(expr={is.data.frame(dat)
+    id.vars %in% colnames(dat)
+  })
+  melttemp <- melt(dat, id.vars = id.vars,
+                   variable.name = variable.name,
+                   value.name = value.name)
+  return(melttemp)
+}
+
+```
+
+
+```{r, eval=FALSE}
+load_all()
+document()
+check()
+```
+We get a warning message.
+Never use library() or require() in a R package!
+
+Two things to do:
+
+1. In DESCRIPTION add:
+```{}
+Imports:
+	reshape2
+```
+2. In your function change `melt` to `reshape2::melt` 
+
+```{r}
+load_all()
+document()
+check()
+```
+No more warnings!
+
+Now practice by adding the function below to your package:
+```{r}
+
+plot_trend <- function(dat=tuggeranong){
+  melttemp <- Wide_To_Long_Temperature(dat)
+  
+  model <- summary(lm(Temperature ~ Year + Month, data = melttemp))
+  year_effect <- round(model$coefficients["Year",],3)
+  
+  library(ggplot2)
+  ggplot(data=melttemp, 
+         aes(x=Year,y=Temperature, color=Month))+
+    geom_point() + geom_smooth(alpha=0.2) +
+    annotate("label", x = mean(melttemp$Year), 
+             y = max(melttemp$Temperature), 
+             label = paste0(ifelse(year_effect[1]>=0, "+", "-"),
+                            year_effect[1], "°C/year, p=",year_effect[4])) 
+}
+
+```
+
+
+##  Make the package a GitHub repository and install from github
+
+If you already have a Github account create a new repo for your package. You can leave the repository completely empty during initialization.
+
+```{}
+echo "# testtemperature" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin https://github.com/timotheenivalis/testtemperature.git
+git push -u origin master
+```
+
+```{}
+git add data/ man/ R/ NAMESPACE DESCRIPTION .gitignore .Rbuildignore
+git commit -m "load all package files"
+git push
+```
+
+Now people can install your package from github.
+```{r}
+install_github("timotheenivalis/testtemperature")
+```
+
+
+## More information
+
+R packages book by Hadley Wickham: http://r-pkgs.had.co.nz/intro.html
